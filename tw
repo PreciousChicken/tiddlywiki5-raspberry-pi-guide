@@ -1,0 +1,37 @@
+#!/bin/bash
+
+# Opens a new tiddlywiki tiddler named after arguments that follow commands
+# Uses vim-tiddlywiki plugin to create metadata
+# https://www.preciouschicken.com/blog/posts/tiddlywiki5-raspberry-pi-guide/
+
+# Checks if pi is mounted, if not mounts in folder created earlier
+if (( $(mount | grep -e 'pi@'| wc -l) == 0 ));
+then     
+	sshfs pi@192.168.0.19:/home/pi/wiki /home/$USER/wiki -o reconnect
+fi
+
+# Replaces non-alphanumeric characters in arguments
+arguments=$(echo $@ | sed "s/[’]//g")
+arguments=$(echo $arguments | sed 's/[^a-zA-Z0-9]/ /g')
+
+# CamelCase converts all arguments
+tid_title=''
+for word in $arguments
+do
+	# Changes argument to lowercase
+	lowercasevar=${word,,}
+	# Capitalises first character of argument
+	sentencevar=${lowercasevar^}
+	tid_title+="$sentencevar"
+done
+
+# Opens neovim with correct tiddler name
+if [[ -f $TIDDLYWIKIPATH$tid_title'.tid' ]]
+then
+	# Updates metadata if tiddler exists
+	nvim -c TiddlyWikiUpdateMetadata $TIDDLYWIKIPATH$tid_title'.tid'
+else
+	# Creates tiddler if not found
+	nvim -c TiddlyWikiInitializeTemplate $TIDDLYWIKIPATH$tid_title'.tid'
+fi
+
